@@ -38,6 +38,7 @@ resource "azurerm_subnet" "app" {
   address_prefixes     = [var.subnet_app_cidr]
 }
 
+# Security Group
 resource "azurerm_network_security_group" "app_nsg" {
   name                = "${var.project_name}-app-nsg"
   location            = azurerm_resource_group.rg.location
@@ -46,14 +47,38 @@ resource "azurerm_network_security_group" "app_nsg" {
   security_rule {
     name                       = "Allow-SSH-from-Bastion"
     priority                   = 100
-    direction                  = "Outbound" 
+    direction                  = "Inbound" 
     access                     = "Allow"
     protocol                   = "*" 
     source_port_range          = "*"
-    destination_port_range     = "*" 
-    source_address_prefix      = "*" 
+    destination_port_ranges     = ["22", "3389"]
+    source_address_prefix      = azurerm_subnet.bastion.address_prefixes[0]
+    destination_address_prefix = "VirtualNetwork"
+    description                = "Allow ingress to resources inside VNet"
+  }
+  security_rule {
+    name                       = "Allow-to-http-app"
+    priority                   = 110
+    direction                  = "Inbound" 
+    access                     = "Allow"
+    protocol                   = "*" 
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
     destination_address_prefix = "*"
-    description                = "Allow egress to resources inside VNet"
+    description                = "Allow ingress to VM:80 inside VNet"
+  }
+  security_rule {
+    name                       = "Deny-other-ingress-traffic"
+    priority                   = 1000
+    direction                  = "Inbound" 
+    access                     = "Deny"
+    protocol                   = "*" 
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+    description                = "Deny others ingress to VNet"
   }
 
   tags = {
@@ -65,42 +90,6 @@ resource "azurerm_network_security_group" "app_nsg" {
 resource "azurerm_subnet_network_security_group_association" "app_nsg_association" {
   subnet_id                 = azurerm_subnet.app.id
   network_security_group_id = azurerm_network_security_group.app_nsg.id
-}
-
-#######################
-# NAT GATEWAY
-#######################
-resource "azurerm_public_ip" "nat_pip" {
-  name                = "${var.project_name}-nat-pip"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-  tags = {
-    Project = var.project_name
-    Owner   = var.owner
-  }
-}
-
-resource "azurerm_nat_gateway" "ngw" {
-  name                = "${var.project_name}-natgw"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  sku_name            = "Standard"
-  tags = {
-    Project = var.project_name
-    Owner   = var.owner
-  }
-}
-
-resource "azurerm_nat_gateway_public_ip_association" "ngw_association" {
-  nat_gateway_id       = azurerm_nat_gateway.ngw.id
-  public_ip_address_id = azurerm_public_ip.nat_pip.id
-}
-
-resource "azurerm_subnet_nat_gateway_association" "ngw_app_sub_association" {
-  subnet_id      = azurerm_subnet.app.id
-  nat_gateway_id = azurerm_nat_gateway.ngw.id
 }
 
 #######################
