@@ -61,10 +61,10 @@ resource "azurerm_network_security_group" "app_nsg" {
     priority                   = 110
     direction                  = "Inbound" 
     access                     = "Allow"
-    protocol                   = "*" 
+    protocol                   = "Tcp" 
     source_port_range          = "*"
     destination_port_range     = "80"
-    source_address_prefix      = "*"
+    source_address_prefix      = "Internet"
     destination_address_prefix = "*"
     description                = "Allow ingress to VM:80 inside VNet"
   }
@@ -75,7 +75,7 @@ resource "azurerm_network_security_group" "app_nsg" {
     access                     = "Deny"
     protocol                   = "*" 
     source_port_range          = "*"
-    destination_port_range     = "80"
+    destination_port_range     = "*"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
     description                = "Deny others ingress to VNet"
@@ -179,5 +179,79 @@ resource "azurerm_linux_virtual_machine" "vm" {
   }
 }
 
+# Install Nginx to VM
+resource "azurerm_virtual_machine_extension" "vm_nginx" {
+  name                 = "Nginx"
+  virtual_machine_id   = azurerm_linux_virtual_machine.vm.id
+  publisher            = "Microsoft.Azure.Extensions"
+  type                 = "CustomScript"
+  type_handler_version = "2.0"
 
+  settings = jsonencode({
+    commandToExecute = "sudo apt-get update && sudo apt-get install -y nginx && echo 'Hello World from $(hostname)' | sudo tee /var/www/html/index.html && sudo systemctl restart nginx"
+  })
 
+}
+
+#####################
+# Load Balancer
+#####################
+resource "azurerm_public_ip" "lb_pip" {
+  name                = "${var.project_name}-lb-pip"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Static"
+}
+
+resource "azurerm_lb" "lb" {
+  name                = "${var.project_name}-lb"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "Standard"
+
+  frontend_ip_configuration {
+    name                 = "PublicIPAddress"
+    public_ip_address_id = azurerm_public_ip.lb_pip.id
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "lb_backend" {
+  loadbalancer_id = azurerm_lb.lb.id
+  name            = "backend-pool"
+}
+
+resource "azurerm_lb_probe" "lb_probe" {
+  loadbalancer_id = azurerm_lb.lb.id
+  name            = "backend-probe"
+  port            = 80
+}
+
+resource "azurerm_lb_rule" "example_rule" {
+  loadbalancer_id                = azurerm_lb.lb.id
+  name                           = "lb-rule"
+  protocol                       = "Tcp"
+  frontend_port                  = 80
+  backend_port                   = 80
+  disable_outbound_snat          = true
+  frontend_ip_configuration_name = "PublicIPAddress"
+  probe_id                       = azurerm_lb_probe.lb_probe.id
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.lb_backend.id]
+}
+
+resource "azurerm_lb_outbound_rule" "lb_outbound_rule" {
+  name                    = "lb-outbound-rule"
+  loadbalancer_id         = azurerm_lb.lb.id
+  protocol                = "Tcp"
+  backend_address_pool_id = azurerm_lb_backend_address_pool.lb_backend.id
+
+  frontend_ip_configuration {
+    name = "PublicIPAddress"
+  }
+}
+
+# Backend pool association
+resource "azurerm_network_interface_backend_address_pool_association" "vm_nic_assctn" {
+  network_interface_id    = azurerm_network_interface.vm_nic.id
+  ip_configuration_name   = "internal"
+  backend_address_pool_id = azurerm_lb_backend_address_pool.lb_backend.id
+}
