@@ -62,6 +62,11 @@ resource "azurerm_network_security_group" "app_nsg" {
   }
 }
 
+resource "azurerm_subnet_network_security_group_association" "app_nsg_association" {
+  subnet_id                 = azurerm_subnet.app.id
+  network_security_group_id = azurerm_network_security_group.app_nsg.id
+}
+
 #######################
 # NAT GATEWAY
 #######################
@@ -86,6 +91,16 @@ resource "azurerm_nat_gateway" "ngw" {
     Project = var.project_name
     Owner   = var.owner
   }
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "ngw_association" {
+  nat_gateway_id       = azurerm_nat_gateway.ngw.id
+  public_ip_address_id = azurerm_public_ip.nat_pip.id
+}
+
+resource "azurerm_subnet_nat_gateway_association" "ngw_app_sub_association" {
+  subnet_id      = azurerm_subnet.app.id
+  nat_gateway_id = azurerm_nat_gateway.ngw.id
 }
 
 #######################
