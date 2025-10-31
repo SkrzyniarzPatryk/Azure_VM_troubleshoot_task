@@ -56,10 +56,9 @@ resource "azurerm_network_security_group" "app_nsg" {
     destination_port_ranges     = ["22", "3389"]
     source_address_prefix      = azurerm_subnet.bastion.address_prefixes[0]
     destination_address_prefix = "VirtualNetwork"
-    description                = "Allow ingress to resources inside VNet"
   }
   security_rule {
-    name                       = "Allow-to-http-app"
+    name                       = "AllowHttpFromInternetInbound"
     priority                   = 110
     direction                  = "Inbound" 
     access                     = "Allow"
@@ -68,10 +67,20 @@ resource "azurerm_network_security_group" "app_nsg" {
     destination_port_range     = "80"
     source_address_prefix      = "Internet"
     destination_address_prefix = "*"
-    description                = "Allow ingress to VM:80 inside VNet"
   }
   security_rule {
-    name                       = "Deny-other-ingress-traffic"
+    name                       = "AllowFromLoadBalancerInbound"
+    priority                   = 120
+    direction                  = "Inbound" 
+    access                     = "Allow"
+    protocol                   = "*" 
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "AzureLoadBalancer"
+    destination_address_prefix = "*"
+  }
+  security_rule {
+    name                       = "DenyOthersInbound"
     priority                   = 1000
     direction                  = "Inbound" 
     access                     = "Deny"

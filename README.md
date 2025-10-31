@@ -90,3 +90,7 @@ Create tunnel
 Connect
 
 > ssh azureuser@127.0.0.1 -i ~\.ssh\id_ed25519
+
+## How deploy with more than one VM
+
+To avoid errors when creating multiple VM extension, recomended is implement first only VM, and next implement Application Extension (Nginx) using command `terraform apply -parallelism=1`
