@@ -128,7 +128,8 @@ resource "azurerm_bastion_host" "bastion" {
 # VIRTUAL MACHINE
 #######################
 resource "azurerm_network_interface" "vm_nic" {
-  name                = "${var.project_name}-vm-nic"
+  count               = var.vm_count
+  name                = "${var.project_name}-vm-nic-${count.index}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -145,13 +146,14 @@ resource "azurerm_network_interface" "vm_nic" {
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "${var.project_name}-vm"
+  count               = var.vm_count
+  name                = "${var.project_name}-vm-${count.index}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   size                = var.vm_size
   admin_username      = var.admin_username
   network_interface_ids = [
-    azurerm_network_interface.vm_nic.id
+    azurerm_network_interface.vm_nic[count.index].id
   ]
 
   source_image_reference {
@@ -181,8 +183,9 @@ resource "azurerm_linux_virtual_machine" "vm" {
 
 # Install Nginx to VM
 resource "azurerm_virtual_machine_extension" "vm_nginx" {
+  count                = var.vm_count
   name                 = "Nginx"
-  virtual_machine_id   = azurerm_linux_virtual_machine.vm.id
+  virtual_machine_id   = azurerm_linux_virtual_machine.vm[count.index].id
   publisher            = "Microsoft.Azure.Extensions"
   type                 = "CustomScript"
   type_handler_version = "2.0"
@@ -190,7 +193,6 @@ resource "azurerm_virtual_machine_extension" "vm_nginx" {
   settings = jsonencode({
     commandToExecute = "sudo apt-get update && sudo apt-get install -y nginx && echo 'Hello World from $(hostname)' | sudo tee /var/www/html/index.html && sudo systemctl restart nginx"
   })
-
 }
 
 #####################
@@ -251,7 +253,8 @@ resource "azurerm_lb_outbound_rule" "lb_outbound_rule" {
 
 # Backend pool association
 resource "azurerm_network_interface_backend_address_pool_association" "vm_nic_assctn" {
-  network_interface_id    = azurerm_network_interface.vm_nic.id
+  count                   = var.vm_count
+  network_interface_id    = azurerm_network_interface.vm_nic[count.index].id
   ip_configuration_name   = "internal"
   backend_address_pool_id = azurerm_lb_backend_address_pool.lb_backend.id
 }

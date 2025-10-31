@@ -35,10 +35,16 @@ variable "subnet_bastion_cidr" {
   default     = "10.42.0.0/26"
 }
 
+variable "vm_count" {
+  type        = number
+  description = "How much vm will be running"
+  default     = 2
+}
+
 variable "vm_size" {
   description = "VM size"
   type        = string
-  default     = "Standard_B1s"
+  default     = "Standard_B1ls"
 }
 
 variable "admin_username" {
