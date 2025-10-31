@@ -74,3 +74,19 @@ Your goal is to convince your teammate why changing the current approach is wort
 ---
 
 **Good luck!**
+
+# Docs
+
+## Connecting via native client
+
+> az network bastion ssh --name "cloudforge-bastion" --resource-group "cloudforge-rg" --target-resource-id "/subscriptions/<subs_id>/resourceGroups/cloudforge-rg/providers/Microsoft.Compute/virtualMachines/cloudforge-vm-1" --auth-type "ssh-key" --username "azureuser" --ssh-key "~\.ssh\id_ed25519"
+
+## Connecting via tunnel
+
+Create tunnel
+
+> az network bastion tunnel --name "cloudforge-bastion" --resource-group "cloudforge-rg" --target-resource-id "/subscriptions/<sub_id>/resourceGroups/cloudforge-rg/providers/Microsoft.Compute/virtualMachines/cloudforge-vm-1" --resource-port "22" --port "1555"
+
+Connect
+
+> ssh azureuser@127.0.0.1 -i ~\.ssh\id_ed25519

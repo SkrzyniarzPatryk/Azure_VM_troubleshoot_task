@@ -36,9 +36,11 @@ resource "azurerm_subnet" "app" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = [var.subnet_app_cidr]
+  default_outbound_access_enabled = false
 }
 
-# Security Group
+######## Security Group
+# Security Group - App - subnet
 resource "azurerm_network_security_group" "app_nsg" {
   name                = "${var.project_name}-app-nsg"
   location            = azurerm_resource_group.rg.location
@@ -111,6 +113,8 @@ resource "azurerm_bastion_host" "bastion" {
   name                = "${var.project_name}-bastion"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "Standard"
+  tunneling_enabled   = true
 
   ip_configuration {
     name                 = "configuration"
@@ -145,7 +149,7 @@ resource "azurerm_network_interface" "vm_nic" {
   }
 }
 
-resource "azurerm_linux_virtual_machine" "vm" {
+resource "azurerm_linux_virtual_machine" "VMs" {
   count               = var.vm_count
   name                = "${var.project_name}-vm-${count.index}"
   location            = azurerm_resource_group.rg.location
@@ -185,13 +189,13 @@ resource "azurerm_linux_virtual_machine" "vm" {
 resource "azurerm_virtual_machine_extension" "vm_nginx" {
   count                = var.vm_count
   name                 = "Nginx"
-  virtual_machine_id   = azurerm_linux_virtual_machine.vm[count.index].id
+  virtual_machine_id   = azurerm_linux_virtual_machine.VMs[count.index].id
   publisher            = "Microsoft.Azure.Extensions"
   type                 = "CustomScript"
   type_handler_version = "2.0"
 
   settings = jsonencode({
-    commandToExecute = "sudo apt-get update && sudo apt-get install -y nginx && echo 'Hello World from $(hostname)' | sudo tee /var/www/html/index.html && sudo systemctl restart nginx"
+    commandToExecute = "sudo apt-get update && sudo apt-get install -y nginx && echo \"Hello World from $(hostname)\" | sudo tee /var/www/html/index.html && sudo systemctl restart nginx"
   })
 }
 
