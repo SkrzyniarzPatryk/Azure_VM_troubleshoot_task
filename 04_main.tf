@@ -32,10 +32,10 @@ resource "azurerm_subnet" "bastion" {
 }
 
 resource "azurerm_subnet" "app" {
-  name                 = "app-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = [var.subnet_app_cidr]
+  name                            = "app-subnet"
+  resource_group_name             = azurerm_resource_group.rg.name
+  virtual_network_name            = azurerm_virtual_network.vnet.name
+  address_prefixes                = [var.subnet_app_cidr]
   default_outbound_access_enabled = false
 }
 
@@ -49,20 +49,20 @@ resource "azurerm_network_security_group" "app_nsg" {
   security_rule {
     name                       = "Allow-SSH-from-Bastion"
     priority                   = 100
-    direction                  = "Inbound" 
+    direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "*" 
+    protocol                   = "*"
     source_port_range          = "*"
-    destination_port_ranges     = ["22", "3389"]
+    destination_port_ranges    = ["22", "3389"]
     source_address_prefix      = azurerm_subnet.bastion.address_prefixes[0]
     destination_address_prefix = "VirtualNetwork"
   }
   security_rule {
     name                       = "AllowHttpFromInternetInbound"
     priority                   = 110
-    direction                  = "Inbound" 
+    direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "Tcp" 
+    protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "80"
     source_address_prefix      = "Internet"
@@ -71,9 +71,9 @@ resource "azurerm_network_security_group" "app_nsg" {
   security_rule {
     name                       = "AllowFromLoadBalancerInbound"
     priority                   = 120
-    direction                  = "Inbound" 
+    direction                  = "Inbound"
     access                     = "Allow"
-    protocol                   = "*" 
+    protocol                   = "*"
     source_port_range          = "*"
     destination_port_range     = "*"
     source_address_prefix      = "AzureLoadBalancer"
@@ -82,9 +82,9 @@ resource "azurerm_network_security_group" "app_nsg" {
   security_rule {
     name                       = "DenyOthersInbound"
     priority                   = 1000
-    direction                  = "Inbound" 
+    direction                  = "Inbound"
     access                     = "Deny"
-    protocol                   = "*" 
+    protocol                   = "*"
     source_port_range          = "*"
     destination_port_range     = "*"
     source_address_prefix      = "*"
@@ -112,90 +112,90 @@ resource "azurerm_network_security_group" "bastion_nsg" {
   security_rule {
     name                       = "AllowHttpsInbound"
     priority                   = 120
-    direction                  = "Inbound" 
+    direction                  = "Inbound"
     access                     = "Allow"
     source_address_prefix      = "Internet"
     source_port_range          = "*"
     destination_address_prefix = "*"
     destination_port_range     = "443"
-    protocol                   = "Tcp" 
+    protocol                   = "Tcp"
   }
   security_rule {
     name                       = "AllowGatewayManagerInbound"
     priority                   = 130
-    direction                  = "Inbound" 
+    direction                  = "Inbound"
     access                     = "Allow"
     source_address_prefix      = "GatewayManager"
     source_port_range          = "*"
     destination_address_prefix = "*"
     destination_port_range     = "443"
-    protocol                   = "Tcp" 
+    protocol                   = "Tcp"
   }
   security_rule {
     name                       = "AllowAzureLoadBalancerInbound"
     priority                   = 140
-    direction                  = "Inbound" 
+    direction                  = "Inbound"
     access                     = "Allow"
     source_address_prefix      = "AzureLoadBalancer"
     source_port_range          = "*"
     destination_address_prefix = "*"
     destination_port_range     = "443"
-    protocol                   = "Tcp" 
+    protocol                   = "Tcp"
   }
   security_rule {
     name                       = "AllowBastionHostCommunication"
     priority                   = 150
-    direction                  = "Inbound" 
+    direction                  = "Inbound"
     access                     = "Allow"
     source_address_prefix      = "VirtualNetwork"
     source_port_range          = "*"
     destination_address_prefix = "VirtualNetwork"
-    destination_port_ranges     = ["8080","5701"]
-    protocol                   = "*" 
+    destination_port_ranges    = ["8080", "5701"]
+    protocol                   = "*"
   }
   security_rule {
     name                       = "AllowSshRdpOutbound"
     priority                   = 100
-    direction                  = "Outbound" 
+    direction                  = "Outbound"
     access                     = "Allow"
     source_address_prefix      = "*"
     source_port_range          = "*"
     destination_address_prefix = "VirtualNetwork"
-    destination_port_ranges     = ["22","3389"]
-    protocol                   = "*" 
+    destination_port_ranges    = ["22", "3389"]
+    protocol                   = "*"
   }
   security_rule {
     name                       = "AllowAzureCloudOutbound"
     priority                   = 110
-    direction                  = "Outbound" 
+    direction                  = "Outbound"
     access                     = "Allow"
     source_address_prefix      = "*"
     source_port_range          = "*"
     destination_address_prefix = "AzureCloud"
     destination_port_range     = "443"
-    protocol                   = "Tcp" 
+    protocol                   = "Tcp"
   }
   security_rule {
     name                       = "AllowBastionCommunication"
     priority                   = 120
-    direction                  = "Outbound" 
+    direction                  = "Outbound"
     access                     = "Allow"
     source_address_prefix      = "VirtualNetwork"
     source_port_range          = "*"
     destination_address_prefix = "VirtualNetwork"
-    destination_port_ranges     = ["8080","5701"]
-    protocol                   = "*" 
+    destination_port_ranges    = ["8080", "5701"]
+    protocol                   = "*"
   }
   security_rule {
     name                       = "AllowHttpOutbound"
     priority                   = 130
-    direction                  = "Outbound" 
+    direction                  = "Outbound"
     access                     = "Allow"
     source_address_prefix      = "*"
     source_port_range          = "*"
     destination_address_prefix = "Internet"
     destination_port_range     = "80"
-    protocol                   = "*" 
+    protocol                   = "*"
   }
 
   tags = {
@@ -376,4 +376,11 @@ resource "azurerm_network_interface_backend_address_pool_association" "vm_nic_as
   network_interface_id    = azurerm_network_interface.vm_nic[count.index].id
   ip_configuration_name   = "internal"
   backend_address_pool_id = azurerm_lb_backend_address_pool.lb_backend.id
+}
+
+###############
+# Outputs
+###############
+output "Load_Balance_Ip_Address" {
+  value = azurerm_public_ip.lb_pip.ip_address
 }
